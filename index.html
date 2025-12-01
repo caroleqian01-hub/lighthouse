@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lighthouse Keeper</title>
+    <meta name="theme-color" content="#050505">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="icon" type="image/png" href="icon.png">
+    <style>
+        /* === 样式表保持不变，为了节省空间省略，与之前一致 === */
+        :root { --bg-base: #050505; --beam-color: rgba(255, 248, 220, 0.05); --beam-center: rgba(255, 255, 255, 0.4); --text-color: #e0e0e0; --accent-gold: #f1c40f; --input-bg: rgba(255, 255, 255, 0.1); }
+        body { margin: 0; height: 100vh; background-color: var(--bg-base); font-family: "PingFang SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--text-color); display: flex; flex-direction: column; align-items: center; overflow: hidden; transition: background-color 2s ease; }
+        .savings-box { position: absolute; top: 20px; right: 20px; font-family: 'Monaco', monospace; font-size: 14px; color: var(--accent-gold); display: flex; align-items: center; gap: 5px; opacity: 0.8; z-index: 10; }
+        .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; display: flex; justify-content: center; align-items: center; }
+        .tower { position: absolute; bottom: 0; width: 60px; height: 200px; background: linear-gradient(to top, #000, #1a1a1a); clip-path: polygon(20% 0%, 80% 0%, 100% 100%, 0% 100%); z-index: 2; }
+        .lantern { position: absolute; bottom: 200px; width: 20px; height: 20px; background: #fff; border-radius: 50%; box-shadow: 0 0 20px #fff; z-index: 3; opacity: 0.5; transition: opacity 1s, box-shadow 1s; }
+        .beam { position: absolute; bottom: 210px; width: 600px; height: 600px; background: radial-gradient(circle, var(--beam-center) 0%, var(--beam-color) 40%, transparent 70%); border-radius: 50%; opacity: 0; transform: scale(0.5); transition: opacity 1.5s ease, transform 1.5s ease, background 1.5s ease; animation: breathe 6s infinite ease-in-out; z-index: 1; }
+        @keyframes breathe { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.1); opacity: 0.6; } }
+        .chat-container { position: relative; z-index: 5; flex: 1; width: 100%; max-width: 500px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
+        .message { font-size: 18px; line-height: 1.6; text-align: center; margin-bottom: 30px; min-height: 60px; text-shadow: 0 0 10px rgba(0,0,0,0.8); }
+        .cursor::after { content: '|'; animation: blink 1s infinite; }
+        @keyframes blink { 0%, 100% {opacity: 1;} 50% {opacity: 0;} }
+        .input-area { position: relative; z-index: 10; width: 90%; max-width: 400px; margin-bottom: 40px; transition: opacity 0.5s; }
+        input { width: 100%; background: var(--input-bg); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 15px; border-radius: 30px; font-size: 16px; text-align: center; outline: none; backdrop-filter: blur(5px); transition: all 0.3s; box-sizing: border-box; }
+        input:focus { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.5); }
+        .choice-btns { display: none; gap: 20px; width: 100%; justify-content: center; z-index: 20; }
+        .btn { padding: 12px 25px; border-radius: 25px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; transition: transform 0.2s; }
+        .btn:active { transform: scale(0.95); }
+        .btn-buy { background: rgba(255,255,255,0.1); color: #aaa; border: 1px solid #555; }
+        .btn-save { background: var(--accent-gold); color: #000; box-shadow: 0 0 15px rgba(241, 196, 15, 0.4); }
+        #particles { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4; }
+        .particle { position: absolute; background: white; border-radius: 50%; opacity: 0; }
+    </style>
+</head>
+<body>
+
+    <div class="savings-box"><span>⚓</span><span id="savingsDisplay">0</span></div>
+    <div class="scene">
+        <div class="beam" id="lightBeam"></div>
+        <div class="lantern" id="lantern"></div>
+        <div class="tower"></div>
+        <div id="particles"></div>
+    </div>
+    <div class="chat-container"><div class="message" id="messageBox"></div></div>
+    <div class="input-area" id="inputContainer"><input type="text" id="userInput" placeholder="告诉我，你想买什么..." autocomplete="off"></div>
+    <div class="choice-btns" id="choiceBtns">
+        <button class="btn btn-buy" onclick="handleBuy()">💸 还是买了</button>
+        <button class="btn btn-save" onclick="handleSave()">⚓ 存下这笔钱</button>
+    </div>
+
+<script>
+    // === 核心数据 ===
+    let stage = 0; 
+    let currentPrice = 0; 
+    let totalSavings = parseFloat(localStorage.getItem('lighthouse_savings') || 0);
+
+    // === 🌊 灵魂语料库 (包含模仿者、ASD友好题库) ===
+    const scripts = {
+        greetings: [
+            "这里是守塔人。今晚的海面有点浪，你想买什么？告诉我名字和价格。",
+            "嘘... 这里很安静。小狗士兵，告诉我，是什么东西让你动心了？",
+            "欢迎靠岸，冒险家。把那个让你心痒痒的东西告诉我吧。",
+            "嘿，Lynn。又是一个充满诱惑的夜晚吗？我在听。",
+            "这里是避风港。放下你的锚，告诉我你想用金币交换什么？",
+            "我看得到你，小狗士兵。别急，慢慢说，你想带走什么？",
+            "灯塔已点亮。无论是风暴还是宝藏，我都准备好倾听了。",
+            "早安（或者是晚安？）。这里永远为你亮着灯。输入那个数字吧。"
+        ],
+        distraction: [
+            "收到啦。在那之前，能不能告诉我，今天你那边的云是什么形状的？☁️",
+            "扫描一下你的视野，模仿者。找出三个【圆形的】东西，告诉我它们是什么？",
+            "我也想看看。你周围有多少个直角？数一数你面前的屏幕或桌子有几个角。",
+            "看看地板或墙壁的纹理。它是重复的图案吗？盯着其中一个花纹看 5 秒钟。",
+            "如果把你现在的环境定义为一种颜色，除了黑白，它是什么颜色的？",
+            "用指尖摸摸你现在的衣服面料。是粗糙的，还是顺滑的？",
+            "把手掌贴在桌面上（或者墙上）。它是凉的吗？把你的体温传给它一点点。",
+            "感觉一下你的牙齿。你是咬紧的，还是放松的？试着把舌头抵在上颚。",
+            "找一个离你最近的物体，只用眼睛描绘它的轮廓线。它的边缘是锋利的吗？",
+            "嘘... 闭上眼听一秒，窗外现在是风声、车声，还是行人的脚步声？🍃"
+        ],
+        movement: [
+            "嘿，要不我们玩个游戏？去找一个能看到天空或者窗户的地方，走到那里再回复我。🚶",
+            "现在的空气有点闷。能去打开一扇窗，或者推开一扇门吗？让新的风进来。",
+            "去厨房打开冰箱门（或者找一瓶冰水）。感受一下那股冷气扑面而来的瞬间。",
+            "转身，背对着你刚才盯着的东西。数 10 下，假装你是一个正在放哨的守卫。",
+            "找一面镜子，去看看镜子里的那个模仿者。对他/她眨一下左眼。",
+            "站起来（如果不行就坐直），用力推一下墙壁或者椅背。感受肌肉绷紧又放松的感觉。",
+            "双手交叉抱住自己，像蝴蝶拍翅膀一样轻轻拍打双臂。这是给你自己的一个拥抱。",
+            "把脚跟抬起来，再重重地落下。感受一下地心引力把你稳稳地接住。",
+            "做一个夸张的哈欠，哪怕是假装的。张大嘴巴，拉伸你的下巴。",
+            "去洗手间用冷水洗个手吧，让水流过指尖，洗完回来告诉我水的温度。💧"
+        ],
+        reflection: [
+            "好了，现在告诉我，如果把它带回家，一个月后的今天，它会在哪里？是陪着你，还是在角落里落灰？📦",
+            "想象一下你拥有它的快乐。这份快乐能持续多久？十分钟？还是十天？",
+            "如果我们要用它来交换你最喜欢的一顿晚餐，你愿意交换吗？🍽️",
+            "它会让你的生活变得更轻盈，还是更拥挤一点点？",
+            "这笔钱如果变成一张去远方的车票，或者是好几个下午的咖啡，你会心动吗？☕️",
+            "如果你现在不买，明天早上醒来，你会觉得遗憾，还是会松一口气？",
+            "它对现在的你来说，是‘雪中送炭’的必需品，还是‘锦上添花’的装饰品？",
+            "为了赚到这笔钱，你付出了多少个小时的自由？用这些自由换它，值得吗？⏳",
+            "如果不买它，这笔钱能帮你离那个‘大目标’（比如旅行、还债）近多少步？",
+            "闭上眼，想象一下一年后的自己。那个时候的你，还记得这件东西吗？"
+        ],
+        social: [
+            "买下它之后，你最想第一时间告诉谁？他/她会为你感到开心吗？✨",
+            "如果你的好朋友买了它，你会觉得这是一笔很棒的投资吗？",
+            "想象一下，如果你把这笔钱变成一份礼物送给未来的自己，你会送什么？🎁",
+            "如果没人知道你买了它（不能发朋友圈，没人看到），你还依然这么想要它吗？",
+            "那个总是爱你的朋友，如果此时站在你身边，她会拉住你的手，还是会说‘买吧’？",
+            "这件东西，是用来取悦你自己的，还是用来向别人证明些什么的？",
+            "如果这笔钱可以捐给流浪猫狗，或者变成一束花送给妈妈，你会犹豫吗？🐾",
+            "你是为了拥有它本身，还是为了拥有那个‘买下它的瞬间’？",
+            "如果它是免费送给你的，但条件是你必须背着它走一整天，你还想要吗？",
+            "Lynn，看着我的眼睛（虽然我只是灯塔）。此刻的你，是焦虑的，还是平静的？"
+        ],
+        permission: [
+            "夜色温柔，模仿者。如果你依然想要，那就去吧。我会在这里等你。",
+            "冒险家，这里是大副。无论你做什么决定，我们随时启航。",
+            "Lynn，循此苦旅，终抵繁星。听从你内心的声音吧。",
+            "模仿者，Carry on. You only live once. 如果这是你的快乐，那就抓住它。",
+            "如果你已经想清楚了，那就不要回头。买下它，然后好好爱惜它。",
+            "钱是为你服务的，不是你的主人。如果你觉得它值得，那就是值得。",
+            "无论买或不买，你今天都很棒，因为你思考了这么久。",
+            "去做那个让你嘴角上扬的决定吧。"
+        ]
+    };
+
+    // === 初始化 ===
+    document.getElementById('savingsDisplay').innerText = totalSavings.toLocaleString();
+    
+    // ✨ 核心修复：这里调用随机问候语 ✨
+    const randomGreeting = getRandom(scripts.greetings);
+    typeWriter(randomGreeting);
+
+    // === 输入处理 ===
+    const input = document.getElementById('userInput');
+    input.addEventListener('keypress', function (e) {
+        if (e.key === 'Enter' && this.value.trim() !== '') {
+            handleInput(this.value.trim());
+            this.value = '';
+        }
+    });
+
+    function handleInput(text) {
+        createParticles();
+
+        if (stage === 0) {
+            // 尝试提取价格
+            const priceMatch = text.match(/(\d+(\.\d+)?)/);
+            if (priceMatch) {
+                currentPrice = parseFloat(priceMatch[0]);
+            }
+            stage++;
+            advanceConversation();
+        } else if (stage < 5) {
+            stage++;
+            advanceConversation();
+        }
+    }
+
+    function advanceConversation() {
+        brightenLight(stage);
+
+        let nextText = "";
+        // 随机抽取逻辑
+        if (stage === 1) nextText = getRandom(scripts.distraction);
+        else if (stage === 2) nextText = getRandom(scripts.movement);
+        else if (stage === 3) nextText = getRandom(scripts.reflection);
+        else if (stage === 4) nextText = getRandom(scripts.social);
+        else if (stage === 5) {
+            nextText = getRandom(scripts.permission);
+            showFinalChoices();
+        }
+        typeWriter(nextText);
+    }
+
+    function brightenLight(level) {
+        const beam = document.getElementById('lightBeam');
+        const lantern = document.getElementById('lantern');
+        const body = document.body;
+        const opacity = 0.1 + (level * 0.15); 
+        const scale = 0.5 + (level * 0.15);
+        const bgLightness = 5 + (level * 2);
+        beam.style.opacity = opacity;
+        beam.style.transform = `scale(${scale})`;
+        lantern.style.opacity = 0.5 + (level * 0.1);
+        lantern.style.boxShadow = `0 0 ${20 + level * 10}px #fff`;
+        body.style.backgroundColor = `hsl(0, 0%, ${bgLightness}%)`;
+    }
+
+    function typeWriter(text) {
+        const box = document.getElementById('messageBox');
+        box.innerHTML = '<span class="cursor"></span>';
+        let i = 0;
+        const inputContainer = document.getElementById('inputContainer');
+        inputContainer.style.opacity = '0';
+        inputContainer.style.pointerEvents = 'none';
+
+        function type() {
+            if (i < text.length) {
+                box.innerText = text.substring(0, i + 1);
+                i++;
+                const randomSpeed = 30 + Math.random() * 50;
+                setTimeout(type, randomSpeed); 
+            } else {
+                box.innerHTML = text + '<span class="cursor"></span>';
+                if (stage < 5) {
+                    setTimeout(() => {
+                        inputContainer.style.opacity = '1';
+                        inputContainer.style.pointerEvents = 'auto';
+                        document.getElementById('userInput').focus();
+                    }, 500);
+                }
+            }
+        }
+        setTimeout(type, 600);
+    }
+
+    function showFinalChoices() {
+        document.getElementById('inputContainer').style.display = 'none';
+        const btns = document.getElementById('choiceBtns');
+        btns.style.display = 'flex';
+        if (currentPrice > 0) {
+            document.querySelector('.btn-save').innerText = `⚓ 存下这 ¥${currentPrice}`;
+        }
+    }
+
+    function handleBuy() {
+        typeWriter("去吧，模仿者。愿它能让你快乐很久。🌊");
+        document.getElementById('choiceBtns').style.display = 'none';
+        setTimeout(() => location.reload(), 5000);
+    }
+
+    function handleSave() {
+        if (currentPrice === 0) {
+            let manualPrice = prompt("太棒了！这次省下了多少钱？");
+            if (manualPrice) currentPrice = parseFloat(manualPrice);
+        }
+        if (currentPrice > 0) {
+            totalSavings += currentPrice;
+            localStorage.setItem('lighthouse_savings', totalSavings);
+            document.getElementById('savingsDisplay').innerText = totalSavings.toLocaleString();
+            typeWriter(`宝藏已入库！你的专属积蓄增加了 ¥${currentPrice}。⚓`);
+        } else {
+            typeWriter("太棒了！又一次战胜了风浪。⚓");
+        }
+        document.getElementById('choiceBtns').style.display = 'none';
+        setTimeout(() => location.reload(), 4000);
+    }
+
+    function getRandom(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function createParticles() {
+        const input = document.getElementById('inputContainer');
+        const rect = input.getBoundingClientRect();
+        const particles = document.getElementById('particles');
+        for (let i = 0; i < 20; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            p.style.left = (rect.left + Math.random() * rect.width) + 'px';
+            p.style.top = (rect.top + Math.random() * rect.height) + 'px';
+            p.style.width = Math.random() * 4 + 'px';
+            p.style.height = p.style.width;
+            const destX = window.innerWidth / 2 - parseFloat(p.style.left);
+            const destY = 200 - parseFloat(p.style.top);
+            p.animate([{ transform: 'translate(0,0)', opacity: 1 }, { transform: `translate(${destX}px, ${destY}px)`, opacity: 0 }], { duration: 800 + Math.random() * 500, easing: 'ease-out' });
+            particles.appendChild(p);
+            setTimeout(() => p.remove(), 1500);
+        }
+    }
+<script>
+    // ... 这一大堆是你原本的 JS 代码 ...
+    
+    // 👇 在 init(); 后面加上这段 👇
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js');
+    }
+</script>
+</body>
+</html>
+</body>
+</html>

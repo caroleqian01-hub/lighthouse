@@ -1,0 +1,25 @@
+{
+  "name": "Lighthouse",
+  "short_name": "Lighthouse",
+  "id": "/",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f2027",
+  "theme_color": "#0f2027",
+  "orientation": "portrait",
+  "description": "一个专为ADHD设计的、冲动购物控制工具。",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
