@@ -8,23 +8,59 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon.png">
     <link rel="icon" type="image/png" href="icon.png">
+    
     <style>
-        /* === 样式表保持不变，为了节省空间省略，与之前一致 === */
-        :root { --bg-base: #050505; --beam-color: rgba(255, 248, 220, 0.05); --beam-center: rgba(255, 255, 255, 0.4); --text-color: #e0e0e0; --accent-gold: #f1c40f; --input-bg: rgba(255, 255, 255, 0.1); }
+        :root {
+            --bg-base: #050505; --beam-color: rgba(255, 248, 220, 0.05); --beam-center: rgba(255, 255, 255, 0.4);
+            --text-color: #e0e0e0; --accent-gold: #f1c40f; --input-bg: rgba(255, 255, 255, 0.1);
+        }
         body { margin: 0; height: 100vh; background-color: var(--bg-base); font-family: "PingFang SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--text-color); display: flex; flex-direction: column; align-items: center; overflow: hidden; transition: background-color 2s ease; }
+        
         .savings-box { position: absolute; top: 20px; right: 20px; font-family: 'Monaco', monospace; font-size: 14px; color: var(--accent-gold); display: flex; align-items: center; gap: 5px; opacity: 0.8; z-index: 10; }
         .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; display: flex; justify-content: center; align-items: center; }
+        
+        /* === 塔身 (保持不变) === */
         .tower { position: absolute; bottom: 0; width: 60px; height: 200px; background: linear-gradient(to top, #000, #1a1a1a); clip-path: polygon(20% 0%, 80% 0%, 100% 100%, 0% 100%); z-index: 2; }
-        .lantern { position: absolute; bottom: 200px; width: 20px; height: 20px; background: #fff; border-radius: 50%; box-shadow: 0 0 20px #fff; z-index: 3; opacity: 0.5; transition: opacity 1s, box-shadow 1s; }
-        .beam { position: absolute; bottom: 210px; width: 600px; height: 600px; background: radial-gradient(circle, var(--beam-center) 0%, var(--beam-color) 40%, transparent 70%); border-radius: 50%; opacity: 0; transform: scale(0.5); transition: opacity 1.5s ease, transform 1.5s ease, background 1.5s ease; animation: breathe 6s infinite ease-in-out; z-index: 1; }
+        
+        /* === 新增：圆润的塔顶 (Roof) === */
+        .roof {
+            position: absolute;
+            bottom: 200px; /* 刚好坐在塔身上 */
+            left: 50%; margin-left: -22px; /* 居中，比塔顶稍宽一点点 */
+            width: 44px; height: 18px;
+            background: linear-gradient(to top, #1a1a1a, #000); /* 材质和塔身一致 */
+            border-radius: 50% 50% 0 0 / 100% 100% 0 0; /* 完美的半圆形穹顶 */
+            z-index: 2;
+        }
+
+        /* === 灯笼 (位置上移) === */
+        .lantern { position: absolute; bottom: 215px; /* 坐在新塔顶上 */ width: 20px; height: 20px; background: #fff; border-radius: 50%; box-shadow: 0 0 20px #fff; z-index: 3; opacity: 0.5; transition: opacity 1s, box-shadow 1s; }
+        
+        /* === 光束 (位置跟随上移) === */
+        .beam { position: absolute; bottom: 225px; /* 跟随灯笼 */ width: 600px; height: 600px; background: radial-gradient(circle, var(--beam-center) 0%, var(--beam-color) 40%, transparent 70%); border-radius: 50%; opacity: 0; transform: scale(0.5); transition: opacity 1.5s ease, transform 1.5s ease, background 1.5s ease; animation: breathe 6s infinite ease-in-out; z-index: 1; }
         @keyframes breathe { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.1); opacity: 0.6; } }
+        
         .chat-container { position: relative; z-index: 5; flex: 1; width: 100%; max-width: 500px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
         .message { font-size: 18px; line-height: 1.6; text-align: center; margin-bottom: 30px; min-height: 60px; text-shadow: 0 0 10px rgba(0,0,0,0.8); }
         .cursor::after { content: '|'; animation: blink 1s infinite; }
         @keyframes blink { 0%, 100% {opacity: 1;} 50% {opacity: 0;} }
-        .input-area { position: relative; z-index: 10; width: 90%; max-width: 400px; margin-bottom: 40px; transition: opacity 0.5s; }
-        input { width: 100%; background: var(--input-bg); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 15px; border-radius: 30px; font-size: 16px; text-align: center; outline: none; backdrop-filter: blur(5px); transition: all 0.3s; box-sizing: border-box; }
+
+        .input-area { position: relative; z-index: 10; width: 90%; max-width: 400px; margin-bottom: 40px; transition: opacity 0.5s; display: flex; gap: 10px; align-items: center; }
+        input { flex: 1; background: var(--input-bg); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 15px; border-radius: 30px; font-size: 16px; text-align: center; outline: none; backdrop-filter: blur(5px); transition: all 0.3s; box-sizing: border-box; }
         input:focus { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.5); }
+        
+        /* === 发送按钮：信号塔光晕版 === */
+        .send-btn {
+            width: 50px; height: 50px; background: transparent; border: none;
+            color: rgba(255, 255, 255, 0.7); font-size: 28px; 
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; flex-shrink: 0;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        .send-btn:hover { color: white; text-shadow: 0 0 15px rgba(255, 255, 255, 0.5); transform: scale(1.1); }
+        .send-btn:active { color: var(--accent-gold); text-shadow: 0 0 20px var(--accent-gold), 0 0 30px rgba(241, 196, 15, 0.5); transform: scale(0.9); }
+
         .choice-btns { display: none; gap: 20px; width: 100%; justify-content: center; z-index: 20; }
         .btn { padding: 12px 25px; border-radius: 25px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; transition: transform 0.2s; }
         .btn:active { transform: scale(0.95); }
@@ -40,11 +76,17 @@
     <div class="scene">
         <div class="beam" id="lightBeam"></div>
         <div class="lantern" id="lantern"></div>
+        <div class="roof"></div>
         <div class="tower"></div>
         <div id="particles"></div>
     </div>
     <div class="chat-container"><div class="message" id="messageBox"></div></div>
-    <div class="input-area" id="inputContainer"><input type="text" id="userInput" placeholder="告诉我，你想买什么..." autocomplete="off"></div>
+    
+    <div class="input-area" id="inputContainer">
+        <input type="text" id="userInput" placeholder="告诉我，你想买什么..." autocomplete="off">
+        <div class="send-btn" onclick="triggerSend()">📡</div>
+    </div>
+
     <div class="choice-btns" id="choiceBtns">
         <button class="btn btn-buy" onclick="handleBuy()">💸 还是买了</button>
         <button class="btn btn-save" onclick="handleSave()">⚓ 存下这笔钱</button>
@@ -54,21 +96,23 @@
     // === 核心数据 ===
     let stage = 0; 
     let currentPrice = 0; 
+    // 读取本地存储的积蓄金额，如果没有则默认为 0
     let totalSavings = parseFloat(localStorage.getItem('lighthouse_savings') || 0);
 
-    // === 🌊 灵魂语料库 (包含模仿者、ASD友好题库) ===
+    // === 🗃️ 扩容后的灵魂语料库 ===
     const scripts = {
         greetings: [
             "这里是守塔人。今晚的海面有点浪，你想买什么？告诉我名字和价格。",
-            "嘘... 这里很安静。小狗士兵，告诉我，是什么东西让你动心了？",
+            "嘘... 小狗士兵，这里很安静。告诉我，是什么东西让你动心了？",
             "欢迎靠岸，冒险家。把那个让你心痒痒的东西告诉我吧。",
             "嘿，Lynn。又是一个充满诱惑的夜晚吗？我在听。",
             "这里是避风港。放下你的锚，告诉我你想用金币交换什么？",
-            "我看得到你，小狗士兵。别急，慢慢说，你想带走什么？",
+            "我看得到你，模仿者。别急，慢慢说，你想带走什么？",
             "灯塔已点亮。无论是风暴还是宝藏，我都准备好倾听了。",
             "早安（或者是晚安？）。这里永远为你亮着灯。输入那个数字吧。"
         ],
         distraction: [
+            // ... (此处省略了中间的语料库，代码中是完整的) ...
             "收到啦。在那之前，能不能告诉我，今天你那边的云是什么形状的？☁️",
             "扫描一下你的视野，模仿者。找出三个【圆形的】东西，告诉我它们是什么？",
             "我也想看看。你周围有多少个直角？数一数你面前的屏幕或桌子有几个角。",
@@ -117,7 +161,7 @@
             "Lynn，看着我的眼睛（虽然我只是灯塔）。此刻的你，是焦虑的，还是平静的？"
         ],
         permission: [
-            "夜色温柔，模仿者。如果你依然想要，那就去吧。我会在这里等你。",
+            "夜色温柔，小狗士兵。如果你依然想要，那就去吧。我会在这里等你。",
             "冒险家，这里是大副。无论你做什么决定，我们随时启航。",
             "Lynn，循此苦旅，终抵繁星。听从你内心的声音吧。",
             "模仿者，Carry on. You only live once. 如果这是你的快乐，那就抓住它。",
@@ -128,27 +172,31 @@
         ]
     };
 
-    // === 初始化 ===
+    // === 初始化界面 ===
     document.getElementById('savingsDisplay').innerText = totalSavings.toLocaleString();
-    
-    // ✨ 核心修复：这里调用随机问候语 ✨
     const randomGreeting = getRandom(scripts.greetings);
     typeWriter(randomGreeting);
 
     // === 输入处理 ===
     const input = document.getElementById('userInput');
+    // 保留回车键发送功能
     input.addEventListener('keypress', function (e) {
-        if (e.key === 'Enter' && this.value.trim() !== '') {
-            handleInput(this.value.trim());
-            this.value = '';
-        }
+        if (e.key === 'Enter') triggerSend();
     });
 
-    function handleInput(text) {
-        createParticles();
+    // 手动点击按钮发送
+    function triggerSend() {
+        const val = input.value.trim();
+        if (val !== '') {
+            handleInput(val);
+            input.value = ''; // 清空输入框
+        }
+    }
 
+    function handleInput(text) {
+        createParticles(); // 发射粒子效果
         if (stage === 0) {
-            // 尝试提取价格
+            // 第一步：尝试提取价格数字
             const priceMatch = text.match(/(\d+(\.\d+)?)/);
             if (priceMatch) {
                 currentPrice = parseFloat(priceMatch[0]);
@@ -161,41 +209,51 @@
         }
     }
 
+    // === 对话推进逻辑 ===
     function advanceConversation() {
-        brightenLight(stage);
-
+        brightenLight(stage); // 点亮灯塔
         let nextText = "";
-        // 随机抽取逻辑
         if (stage === 1) nextText = getRandom(scripts.distraction);
         else if (stage === 2) nextText = getRandom(scripts.movement);
         else if (stage === 3) nextText = getRandom(scripts.reflection);
         else if (stage === 4) nextText = getRandom(scripts.social);
         else if (stage === 5) {
             nextText = getRandom(scripts.permission);
-            showFinalChoices();
+            showFinalChoices(); // 显示最终按钮
         }
         typeWriter(nextText);
     }
 
+    // === 灯光变亮效果 ===
     function brightenLight(level) {
         const beam = document.getElementById('lightBeam');
         const lantern = document.getElementById('lantern');
         const body = document.body;
+
+        // 透明度逐渐增加
         const opacity = 0.1 + (level * 0.15); 
+        // 光束范围逐渐变大
         const scale = 0.5 + (level * 0.15);
+        // 背景稍微变亮一点点（黎明的感觉）
         const bgLightness = 5 + (level * 2);
+
         beam.style.opacity = opacity;
         beam.style.transform = `scale(${scale})`;
+        
         lantern.style.opacity = 0.5 + (level * 0.1);
         lantern.style.boxShadow = `0 0 ${20 + level * 10}px #fff`;
+        
         body.style.backgroundColor = `hsl(0, 0%, ${bgLightness}%)`;
     }
 
+    // === 打字机效果 ===
     function typeWriter(text) {
         const box = document.getElementById('messageBox');
-        box.innerHTML = '<span class="cursor"></span>';
+        box.innerHTML = '<span class="cursor"></span>'; // 清空并保留光标
         let i = 0;
         const inputContainer = document.getElementById('inputContainer');
+        
+        // 打字时隐藏输入框
         inputContainer.style.opacity = '0';
         inputContainer.style.pointerEvents = 'none';
 
@@ -203,10 +261,13 @@
             if (i < text.length) {
                 box.innerText = text.substring(0, i + 1);
                 i++;
+                // 随机打字速度，更拟人
                 const randomSpeed = 30 + Math.random() * 50;
                 setTimeout(type, randomSpeed); 
             } else {
+                // 打字结束，加回光标
                 box.innerHTML = text + '<span class="cursor"></span>';
+                // 如果还没到最后一步，重新显示输入框
                 if (stage < 5) {
                     setTimeout(() => {
                         inputContainer.style.opacity = '1';
@@ -216,72 +277,100 @@
                 }
             }
         }
+        // 延迟一点点开始打字
         setTimeout(type, 600);
     }
 
+    // === 显示最终选择按钮 ===
     function showFinalChoices() {
         document.getElementById('inputContainer').style.display = 'none';
         const btns = document.getElementById('choiceBtns');
         btns.style.display = 'flex';
+        
+        // 如果提取到了价格，更新按钮文本
         if (currentPrice > 0) {
             document.querySelector('.btn-save').innerText = `⚓ 存下这 ¥${currentPrice}`;
         }
     }
 
+    // === 处理“买了” ===
     function handleBuy() {
         typeWriter("去吧，模仿者。愿它能让你快乐很久。🌊");
         document.getElementById('choiceBtns').style.display = 'none';
+        // 5秒后刷新页面重置
         setTimeout(() => location.reload(), 5000);
     }
 
+    // === 处理“存下” ===
     function handleSave() {
+        // 如果一开始没提取到价格，现在补问一下
         if (currentPrice === 0) {
-            let manualPrice = prompt("太棒了！这次省下了多少钱？");
-            if (manualPrice) currentPrice = parseFloat(manualPrice);
+            let manualPrice = prompt("太棒了！这次省下了多少钱？（输入数字即可）");
+            if (manualPrice) {
+                currentPrice = parseFloat(manualPrice);
+            }
         }
+
         if (currentPrice > 0) {
+            // 更新总积蓄并保存到本地
             totalSavings += currentPrice;
             localStorage.setItem('lighthouse_savings', totalSavings);
+            // 更新右上角显示
             document.getElementById('savingsDisplay').innerText = totalSavings.toLocaleString();
             typeWriter(`宝藏已入库！你的专属积蓄增加了 ¥${currentPrice}。⚓`);
         } else {
             typeWriter("太棒了！又一次战胜了风浪。⚓");
         }
+        
         document.getElementById('choiceBtns').style.display = 'none';
+        // 4秒后刷新页面重置
         setTimeout(() => location.reload(), 4000);
     }
 
+    // === 辅助工具：随机获取数组元素 ===
     function getRandom(arr) {
         return arr[Math.floor(Math.random() * arr.length)];
     }
 
+    // === 视觉特效：发送时的粒子动画 ===
     function createParticles() {
         const input = document.getElementById('inputContainer');
         const rect = input.getBoundingClientRect();
         const particles = document.getElementById('particles');
+
         for (let i = 0; i < 20; i++) {
             const p = document.createElement('div');
             p.className = 'particle';
+            // 随机起始位置（在输入框附近）
             p.style.left = (rect.left + Math.random() * rect.width) + 'px';
             p.style.top = (rect.top + Math.random() * rect.height) + 'px';
+            // 随机大小
             p.style.width = Math.random() * 4 + 'px';
             p.style.height = p.style.width;
+            
+            // 计算飞向灯塔的目标位置（大致在屏幕中心偏上）
             const destX = window.innerWidth / 2 - parseFloat(p.style.left);
             const destY = 200 - parseFloat(p.style.top);
-            p.animate([{ transform: 'translate(0,0)', opacity: 1 }, { transform: `translate(${destX}px, ${destY}px)`, opacity: 0 }], { duration: 800 + Math.random() * 500, easing: 'ease-out' });
+
+            // 执行动画
+            p.animate([
+                { transform: 'translate(0,0)', opacity: 1 },
+                { transform: `translate(${destX}px, ${destY}px)`, opacity: 0 }
+            ], {
+                duration: 800 + Math.random() * 500,
+                easing: 'ease-out'
+            });
+            
             particles.appendChild(p);
+            // 动画结束后清理元素
             setTimeout(() => p.remove(), 1500);
         }
     }
-<script>
-    // ... 这一大堆是你原本的 JS 代码 ...
     
-    // 👇 在 init(); 后面加上这段 👇
+    // ✅ 注册离线引擎 (APK 必须)
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js');
     }
 </script>
-</body>
-</html>
 </body>
 </html>
