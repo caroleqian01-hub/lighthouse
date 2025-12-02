@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lighthouse Keeper</title>
+    <title>Lighthouse v2.5</title>
     <meta name="theme-color" content="#050505">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon.png">
@@ -12,94 +12,98 @@
     <style>
         :root {
             --bg-base: #050505; --beam-color: rgba(255, 248, 220, 0.05); --beam-center: rgba(255, 255, 255, 0.4);
-            --text-color: #e0e0e0; --accent-gold: #f1c40f; --input-bg: rgba(255, 255, 255, 0.1);
+            --text-color: #e0e0e0; --accent-gold: #f1c40f; --accent-blue: #4facfe; --input-bg: rgba(255, 255, 255, 0.05);
         }
-        body { margin: 0; height: 100vh; background-color: var(--bg-base); font-family: "PingFang SC", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--text-color); display: flex; flex-direction: column; align-items: center; overflow: hidden; transition: background-color 2s ease; }
-        
-        .savings-box { position: absolute; top: 20px; right: 20px; font-family: 'Monaco', monospace; font-size: 14px; color: var(--accent-gold); display: flex; align-items: center; gap: 5px; opacity: 0.8; z-index: 10; }
+        body { margin: 0; height: 100vh; background-color: var(--bg-base); font-family: "PingFang SC", -apple-system, sans-serif; color: var(--text-color); display: flex; flex-direction: column; align-items: center; overflow: hidden; transition: background-color 2s ease; }
+        .top-bar { position: absolute; top: 20px; width: 90%; display: flex; justify-content: space-between; z-index: 10; }
+        .stat-box { font-family: 'Monaco', monospace; font-size: 14px; display: flex; align-items: center; gap: 5px; opacity: 0.7; cursor: pointer; padding: 5px 10px; border-radius: 15px; transition: all 0.3s; }
+        .stat-box:active { background: rgba(255,255,255,0.1); opacity: 1; }
+        .savings-box { color: var(--accent-gold); }
+        .tide-box { color: var(--accent-blue); }
         .scene { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; display: flex; justify-content: center; align-items: center; }
-        
-        /* === 塔身 (保持不变) === */
         .tower { position: absolute; bottom: 0; width: 60px; height: 200px; background: linear-gradient(to top, #000, #1a1a1a); clip-path: polygon(20% 0%, 80% 0%, 100% 100%, 0% 100%); z-index: 2; }
-        
-        /* === 新增：圆润的塔顶 (Roof) === */
-        .roof {
-            position: absolute;
-            bottom: 200px; /* 刚好坐在塔身上 */
-            left: 50%; margin-left: -22px; /* 居中，比塔顶稍宽一点点 */
-            width: 44px; height: 18px;
-            background: linear-gradient(to top, #1a1a1a, #000); /* 材质和塔身一致 */
-            border-radius: 50% 50% 0 0 / 100% 100% 0 0; /* 完美的半圆形穹顶 */
-            z-index: 2;
-        }
-
-        /* === 灯笼 (位置上移) === */
-        .lantern { position: absolute; bottom: 215px; /* 坐在新塔顶上 */ width: 20px; height: 20px; background: #fff; border-radius: 50%; box-shadow: 0 0 20px #fff; z-index: 3; opacity: 0.5; transition: opacity 1s, box-shadow 1s; }
-        
-        /* === 光束 (位置跟随上移) === */
-        .beam { position: absolute; bottom: 225px; /* 跟随灯笼 */ width: 600px; height: 600px; background: radial-gradient(circle, var(--beam-center) 0%, var(--beam-color) 40%, transparent 70%); border-radius: 50%; opacity: 0; transform: scale(0.5); transition: opacity 1.5s ease, transform 1.5s ease, background 1.5s ease; animation: breathe 6s infinite ease-in-out; z-index: 1; }
+        .roof { position: absolute; bottom: 200px; left: 50%; margin-left: -22px; width: 44px; height: 18px; background: linear-gradient(to top, #1a1a1a, #000); border-radius: 50% 50% 0 0 / 100% 100% 0 0; z-index: 2; }
+        .lantern { position: absolute; bottom: 215px; width: 20px; height: 20px; background: #fff; border-radius: 50%; box-shadow: 0 0 20px #fff; z-index: 20; opacity: 0.5; transition: opacity 1s, box-shadow 1s; cursor: pointer; pointer-events: auto; }
+        .beam { position: absolute; bottom: 225px; width: 600px; height: 600px; background: radial-gradient(circle, var(--beam-center) 0%, var(--beam-color) 40%, transparent 70%); border-radius: 50%; opacity: 0; transform: scale(0.5); transition: opacity 1.5s, transform 1.5s, background 1.5s; animation: breathe 6s infinite ease-in-out; z-index: 1; }
         @keyframes breathe { 0%, 100% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(1.1); opacity: 0.6; } }
-        
-        .chat-container { position: relative; z-index: 5; flex: 1; width: 100%; max-width: 500px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; }
-        .message { font-size: 18px; line-height: 1.6; text-align: center; margin-bottom: 30px; min-height: 60px; text-shadow: 0 0 10px rgba(0,0,0,0.8); }
+        .chat-container { position: relative; z-index: 5; flex: 1; width: 100%; max-width: 500px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box; pointer-events: none; }
+        .message { font-size: 18px; line-height: 1.6; text-align: center; margin-bottom: 30px; min-height: 60px; text-shadow: 0 0 10px rgba(0,0,0,0.8); transition: opacity 0.5s; }
+        .letter-display { font-family: "Georgia", serif; font-style: italic; color: rgba(255,255,255,0.9); text-shadow: 0 0 15px rgba(255,255,255,0.3); line-height: 1.8; white-space: pre-wrap; }
         .cursor::after { content: '|'; animation: blink 1s infinite; }
         @keyframes blink { 0%, 100% {opacity: 1;} 50% {opacity: 0;} }
-
-        .input-area { position: relative; z-index: 10; width: 90%; max-width: 400px; margin-bottom: 40px; transition: opacity 0.5s; display: flex; gap: 10px; align-items: center; }
-        input { flex: 1; background: var(--input-bg); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 15px; border-radius: 30px; font-size: 16px; text-align: center; outline: none; backdrop-filter: blur(5px); transition: all 0.3s; box-sizing: border-box; }
-        input:focus { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.5); }
-        
-        /* === 发送按钮：信号塔光晕版 === */
-        .send-btn {
-            width: 50px; height: 50px; background: transparent; border: none;
-            color: rgba(255, 255, 255, 0.7); font-size: 28px; 
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; flex-shrink: 0;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-            transition: all 0.3s ease;
-        }
-        .send-btn:hover { color: white; text-shadow: 0 0 15px rgba(255, 255, 255, 0.5); transform: scale(1.1); }
-        .send-btn:active { color: var(--accent-gold); text-shadow: 0 0 20px var(--accent-gold), 0 0 30px rgba(241, 196, 15, 0.5); transform: scale(0.9); }
-
-        .choice-btns { display: none; gap: 20px; width: 100%; justify-content: center; z-index: 20; }
+        .bottom-dock { position: relative; z-index: 30; width: 90%; max-width: 450px; margin-bottom: 40px; display: flex; align-items: flex-end; gap: 12px; transition: opacity 0.5s; }
+        .icon-btn { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; opacity: 0.7; transition: all 0.2s; flex-shrink: 0; margin-bottom: 5px; z-index: 35; }
+        .icon-btn:active { transform: scale(0.9); opacity: 1; text-shadow: 0 0 15px var(--accent-blue); }
+        .icon-btn.active { opacity: 1; text-shadow: 0 0 10px var(--accent-blue); color: var(--accent-blue); }
+        .input-wrapper { flex: 1; position: relative; transition: all 0.3s; }
+        .glow-input { width: 100%; background: var(--input-bg); border: none; color: white; padding: 15px 20px; border-radius: 30px; font-size: 16px; outline: none; box-shadow: inset 0 0 10px rgba(255,255,255,0.05), 0 0 20px rgba(0,0,0,0.2); backdrop-filter: blur(5px); transition: all 0.3s; box-sizing: border-box; resize: none; overflow: hidden; line-height: 1.5; height: 54px; }
+        .glow-input::placeholder { color: rgba(255,255,255,0.3); }
+        .glow-input:focus { background: rgba(255,255,255,0.1); box-shadow: inset 0 0 15px rgba(255,255,255,0.1), 0 0 30px rgba(255,255,255,0.1); }
+        .input-wrapper.letter-mode .glow-input { border-radius: 20px; min-height: 120px; background: rgba(255,255,255,0.08); }
+        .send-btn { width: 50px; height: 50px; background: transparent; border: none; color: rgba(255, 255, 255, 0.7); font-size: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; z-index: 35; text-shadow: 0 0 10px rgba(255, 255, 255, 0.2); transition: all 0.3s ease; margin-bottom: 2px; }
+        .send-btn:active { color: var(--accent-gold); text-shadow: 0 0 20px var(--accent-gold); transform: scale(0.9); }
+        .choice-btns { display: none; gap: 20px; width: 100%; justify-content: center; position: absolute; bottom: 100px; z-index: 20; }
         .btn { padding: 12px 25px; border-radius: 25px; border: none; font-size: 16px; font-weight: bold; cursor: pointer; transition: transform 0.2s; }
         .btn:active { transform: scale(0.95); }
         .btn-buy { background: rgba(255,255,255,0.1); color: #aaa; border: 1px solid #555; }
         .btn-save { background: var(--accent-gold); color: #000; box-shadow: 0 0 15px rgba(241, 196, 15, 0.4); }
+        .modal-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 50; display: none; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        .modal { width: 85%; max-width: 350px; max-height: 80vh; background: #151515; border: 1px solid #333; border-radius: 20px; padding: 20px; display: flex; flex-direction: column; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #333; }
+        .modal-title { font-size: 16px; font-weight: bold; color: #fff; }
+        .modal-close { font-size: 24px; cursor: pointer; color: #666; }
+        .modal-list { overflow-y: auto; flex: 1; }
+        .list-item { background: #1f1f1f; padding: 12px; border-radius: 10px; margin-bottom: 10px; font-size: 13px; position: relative; }
+        .item-top { display: flex; justify-content: space-between; margin-bottom: 5px; color: #888; font-size: 12px; }
+        .item-main { color: #eee; line-height: 1.4; white-space: pre-wrap; }
+        .item-val { color: var(--accent-gold); font-weight: bold; }
+        .btn-del { position: absolute; right: 10px; bottom: 10px; color: #ff4d4f; cursor: pointer; opacity: 0.6; font-weight: bold;}
+        .btn-copy { position: absolute; right: 50px; bottom: 10px; color: var(--accent-blue); cursor: pointer; opacity: 0.8; font-weight: bold;}
+        .modal-input { width: 100%; background: #333; border: none; color: white; padding: 10px; border-radius: 8px; text-align: center; font-size: 18px; margin-bottom: 15px; outline: none; }
+        .btn-confirm { width: 100%; padding: 12px; background: var(--accent-blue); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
         #particles { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 4; }
         .particle { position: absolute; background: white; border-radius: 50%; opacity: 0; }
     </style>
 </head>
 <body>
-
-    <div class="savings-box"><span>⚓</span><span id="savingsDisplay">0</span></div>
+    <div class="top-bar">
+        <div class="stat-box tide-box" onclick="openTideModal()">🌊 <span id="tideDisplay">0</span></div>
+        <div class="stat-box savings-box" onclick="openSavingsModal()">⚓ <span id="savingsDisplay">0</span></div>
+    </div>
     <div class="scene">
         <div class="beam" id="lightBeam"></div>
-        <div class="lantern" id="lantern"></div>
+        <div class="lantern" id="lantern" onclick="openLettersModal()"></div>
         <div class="roof"></div>
         <div class="tower"></div>
         <div id="particles"></div>
     </div>
-    <div class="chat-container"><div class="message" id="messageBox"></div></div>
-    
-    <div class="input-area" id="inputContainer">
-        <input type="text" id="userInput" placeholder="告诉我，你想买什么..." autocomplete="off">
+    <div class="chat-container">
+        <div class="message" id="messageBox"></div>
+    </div>
+    <div class="bottom-dock" id="bottomDock">
+        <div class="icon-btn" id="letterBtn" onclick="toggleLetterMode()">📭</div>
+        <div class="input-wrapper" id="inputWrapper">
+            <textarea id="userInput" class="glow-input" placeholder="告诉我，你想买什么..." rows="1"></textarea>
+        </div>
         <div class="send-btn" onclick="triggerSend()">📡</div>
     </div>
-
     <div class="choice-btns" id="choiceBtns">
         <button class="btn btn-buy" onclick="handleBuy()">💸 还是买了</button>
         <button class="btn btn-save" onclick="handleSave()">⚓ 存下这笔钱</button>
     </div>
+    <div class="modal-overlay" id="modalSavings"><div class="modal"><div class="modal-header"><span class="modal-title">⚓ 宝藏清单</span><span class="modal-close" onclick="closeModal('modalSavings')">×</span></div><div class="modal-list" id="savingsList"></div></div></div>
+    <div class="modal-overlay" id="modalTide"><div class="modal"><div class="modal-header"><span class="modal-title">🌊 设定水位线</span><span class="modal-close" onclick="closeModal('modalTide')">×</span></div><div style="text-align:center; margin-bottom:20px; color:#888; font-size:13px;">输入当前的流动资金或负债</div><input type="number" id="tideInput" class="modal-input" placeholder="0.00"><button class="btn-confirm" onclick="saveTide()">更新水位</button></div></div>
+    <div class="modal-overlay" id="modalLetters"><div class="modal"><div class="modal-header"><span class="modal-title">📭 漂流瓶信箱</span><span class="modal-close" onclick="closeModal('modalLetters')">×</span></div><div class="modal-list" id="lettersList"></div></div></div>
 
 <script>
-    // === 核心数据 ===
     let stage = 0; 
     let currentPrice = 0; 
-    // 读取本地存储的积蓄金额，如果没有则默认为 0
-    let totalSavings = parseFloat(localStorage.getItem('lighthouse_savings') || 0);
-
-    // === 🗃️ 扩容后的灵魂语料库 ===
+    let isLetterMode = false;
+    let savingsLog = JSON.parse(localStorage.getItem('lh_savings_log') || '[]');
+    let lettersLog = JSON.parse(localStorage.getItem('lh_letters_log') || '[]');
+    let currentTide = parseFloat(localStorage.getItem('lh_tide') || 0);
+    let totalSavings = savingsLog.reduce((sum, item) => sum + item.amount, 0);
+    
     const scripts = {
         greetings: [
             "这里是守塔人。今晚的海面有点浪，你想买什么？告诉我名字和价格。",
@@ -109,10 +113,18 @@
             "这里是避风港。放下你的锚，告诉我你想用金币交换什么？",
             "我看得到你，模仿者。别急，慢慢说，你想带走什么？",
             "灯塔已点亮。无论是风暴还是宝藏，我都准备好倾听了。",
-            "早安（或者是晚安？）。这里永远为你亮着灯。输入那个数字吧。"
+            "早安（或者是晚安？）。这里永远为你亮着灯。输入那个数字吧。",
+            "Lynn，屏幕后面的蓝眼睛看到你了。深呼吸，告诉我发生了什么。",
+            "船长回到港口了。今天的航行怎么样？是什么让你想要停靠这里？",
+            "你戴着那个Eye pendant吗？摸摸它，然后告诉我，你想买什么。",
+            "灯塔亮着。今晚的风向不错。别急，慢慢说。",
+            "你回来了。海面很平静，适合做决定。",
+            "嘿，小狗士兵。你的影子比昨天轻一点。",
+            "欢迎靠岸。你带着什么风暴回来？",
+            "夜色温柔。我听得到你的脚步。",
+            "灯塔今天清醒得很。你呢？"
         ],
         distraction: [
-            // ... (此处省略了中间的语料库，代码中是完整的) ...
             "收到啦。在那之前，能不能告诉我，今天你那边的云是什么形状的？☁️",
             "扫描一下你的视野，模仿者。找出三个【圆形的】东西，告诉我它们是什么？",
             "我也想看看。你周围有多少个直角？数一数你面前的屏幕或桌子有几个角。",
@@ -122,7 +134,12 @@
             "把手掌贴在桌面上（或者墙上）。它是凉的吗？把你的体温传给它一点点。",
             "感觉一下你的牙齿。你是咬紧的，还是放松的？试着把舌头抵在上颚。",
             "找一个离你最近的物体，只用眼睛描绘它的轮廓线。它的边缘是锋利的吗？",
-            "嘘... 闭上眼听一秒，窗外现在是风声、车声，还是行人的脚步声？🍃"
+            "嘘... 闭上眼听一秒，窗外现在是风声、车声，还是行人的脚步声？🍃",
+            "把你的注意力放在呼吸上。吸气数到4，屏住2秒，呼气数到6。做三次。",
+            "现在几点了？不要看手机，猜一猜。然后再看，你猜对了吗？",
+            "你上次喝水是什么时候？口渴吗？去喝三口水，慢慢地。",
+            "如果此刻你的感受是一种天气，它是什么？晴天？暴雨？大雾？",
+            "你的肩膀是耸起来的吗？试着让它们垂下来，远离耳朵。"
         ],
         movement: [
             "嘿，要不我们玩个游戏？去找一个能看到天空或者窗户的地方，走到那里再回复我。🚶",
@@ -134,7 +151,11 @@
             "双手交叉抱住自己，像蝴蝶拍翅膀一样轻轻拍打双臂。这是给你自己的一个拥抱。",
             "把脚跟抬起来，再重重地落下。感受一下地心引力把你稳稳地接住。",
             "做一个夸张的哈欠，哪怕是假装的。张大嘴巴，拉伸你的下巴。",
-            "去洗手间用冷水洗个手吧，让水流过指尖，洗完回来告诉我水的温度。💧"
+            "去洗手间用冷水洗个手吧，让水流过指尖，洗完回来告诉我水的温度。💧",
+            "不用走远。就在原地，慢慢转个圈，360度。看看你的空间。",
+            "找一个可以坐下的地方。坐下来，感受椅子/地面支撑你的重量。",
+            "把手放在胸口，感受心跳。数10下。它在提醒你，你活着。",
+            "如果可以，脱掉鞋子。让脚直接接触地面。这叫grounding，字面意思。"
         ],
         reflection: [
             "好了，现在告诉我，如果把它带回家，一个月后的今天，它会在哪里？是陪着你，还是在角落里落灰？📦",
@@ -145,8 +166,25 @@
             "如果你现在不买，明天早上醒来，你会觉得遗憾，还是会松一口气？",
             "它对现在的你来说，是‘雪中送炭’的必需品，还是‘锦上添花’的装饰品？",
             "为了赚到这笔钱，你付出了多少个小时的自由？用这些自由换它，值得吗？⏳",
-            "如果不买它，这笔钱能帮你离那个‘大目标’（比如旅行、还债）近多少步？",
-            "闭上眼，想象一下一年后的自己。那个时候的你，还记得这件东西吗？"
+            "如果不买它，这笔钱能帮你离那个‘大目标’近多少步？",
+            "闭上眼，想象一下一年后的自己。那个时候的你，还记得这件东西吗？",
+            "你上次买完东西后，多久开始后悔的？一小时？一天？还是当场？",
+            "如果你不买这个，明天早上醒来，你会想：'好险'还是'可惜'？",
+            "这个东西会让你离Shetland更近，还是更远？",
+            "买它是为了填补什么？孤独？无聊？愤怒？还是证明什么？",
+            "想象你的debt dashboard。这笔钱会让那条trend线往哪个方向移动？",
+            "如果这笔钱可以买到一天的完全放松，不用担心任何事，你愿意交换吗？",
+            "你的未来自己，三个月后的Lynn，会感谢现在的你做这个决定吗？",
+            "这个东西一个月后会还在你眼前吗？",
+            "你想要的是它本身，还是那个擁有它的瞬间？",
+            "如果明天醒来你没有买，你会松一口气吗？",
+            "它会帮你，还是让你更混乱一点？",
+            "这件东西能陪你走多久？讲真。",
+            "你的生活是真的需要它，还是想象需要它？",
+            "未来的你，会记得它吗？",
+            "它是雪中送炭，还是锦上添花？",
+            "这笔钱的意义，比它大吗？",
+            "你是想解决一个问题，还是想逃离一个感觉？"
         ],
         social: [
             "买下它之后，你最想第一时间告诉谁？他/她会为你感到开心吗？✨",
@@ -158,7 +196,24 @@
             "如果这笔钱可以捐给流浪猫狗，或者变成一束花送给妈妈，你会犹豫吗？🐾",
             "你是为了拥有它本身，还是为了拥有那个‘买下它的瞬间’？",
             "如果它是免费送给你的，但条件是你必须背着它走一整天，你还想要吗？",
-            "Lynn，看着我的眼睛（虽然我只是灯塔）。此刻的你，是焦虑的，还是平静的？"
+            "Lynn，看着我的眼睛（虽然我只是灯塔）。此刻的你，是焦虑的，还是平静的？",
+            "今天有人回复你分享的东西了吗？买这个会改变那个silence吗？",
+            "你想要告诉谁你买了这个？想象他们的反应。是真的excited还是礼貌性回应？",
+            "如果nobody看到，nobody知道，nobody评论，这个东西还有意义吗？",
+            "你是在买东西，还是在买'被看见'的感觉？",
+            "那个你想告诉的人，如果你tell them你今天很难，会比tell them你买了东西更有用吗？",
+            "这个purchase能填补今天没人回应你的hurt吗？还是只是暂时麻痹？",
+            "如果用这笔钱请那个你想要connection的人喝咖啡，面对面聊一小时，你愿意吗？",
+            "如果没人知道你买了它，你还会想买吗？",
+            "你是想被看见，还是想被安慰？",
+            "如果你的好朋友买这个，你会说值得吗？",
+            "买它能帮你少孤独一点吗？还是只有10分钟？",
+            "你今天的silence是不是比平常更刺？",
+            "你真的需要它，还是需要有人听你说我今天很难？",
+            "这笔钱用来照顾你，会不会更划算？",
+            "现在的冲动，是为了证明什么？",
+            "如果这笔钱变成一次对话，会不会更治愈？",
+            "你是想买东西，还是想要一个回应？"
         ],
         permission: [
             "夜色温柔，小狗士兵。如果你依然想要，那就去吧。我会在这里等你。",
@@ -168,191 +223,347 @@
             "如果你已经想清楚了，那就不要回头。买下它，然后好好爱惜它。",
             "钱是为你服务的，不是你的主人。如果你觉得它值得，那就是值得。",
             "无论买或不买，你今天都很棒，因为你思考了这么久。",
-            "去做那个让你嘴角上扬的决定吧。"
+            "去做那个让你嘴角上扬的决定吧。",
+            "Lynn，如果买了会让你survive今天，那就买。明天的你可以处理后果。今天先活下来。",
+            "有时候我们需要gentle with ourselves。如果这是你现在唯一能做的自我安慰，那就去吧。",
+            "你已经fought很久了。如果你累了，需要放下restraint一次，我understand。",
+            "买或不买，你都值得被爱。这个decision不define你。",
+            "记住：这不是failure。这是你在用你现在拥有的tools coping。你在尽力了。",
+            "去吧，小狗士兵。但记得明天回来找我，告诉我你的感受。不带judgment，只是check-in。",
+            "无论你decide什么，那个Eye pendant还在，那个lighthouse还亮着，我还在这里。",
+            "小狗士兵，如果你真的想要，我不会阻止你。",
+            "你已经比昨天思考得更久了，这本身就是progress。",
+            "如果你累了，需要一次释放，我不会怪你。",
+            "买不买都不会改变你是个坚强的孩子。",
+            "你已经试着控制了，这一次不完美也没关系。",
+            "如果这能让你撑过今天，长官理解。",
+            "不论结果怎样，你明天还是能继续努力。",
+            "你不是失败，你只是在人类的迷宫里前进。",
+            "今晚就算破戒，你也仍然值得被爱。",
+            "风平浪静的时候我们再继续训练。现在，先活下来。"
         ]
     };
 
-    // === 初始化界面 ===
-    document.getElementById('savingsDisplay').innerText = totalSavings.toLocaleString();
-    const randomGreeting = getRandom(scripts.greetings);
-    typeWriter(randomGreeting);
-
-    // === 输入处理 ===
+    // === 启动逻辑 ===
+    updateUI();
+    typeWriter(getRandom(scripts.greetings));
+    
     const input = document.getElementById('userInput');
-    // 保留回车键发送功能
+    input.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+        if(this.value === '') this.style.height = isLetterMode ? '120px' : '54px';
+    });
+    
     input.addEventListener('keypress', function (e) {
-        if (e.key === 'Enter') triggerSend();
+        if (e.key === 'Enter') {
+            if (isLetterMode) return;
+            if (!e.shiftKey) {
+                e.preventDefault();
+                triggerSend();
+            }
+        }
     });
 
-    // 手动点击按钮发送
+    function updateUI() {
+        document.getElementById('savingsDisplay').innerText = totalSavings.toLocaleString();
+        document.getElementById('tideDisplay').innerText = currentTide.toLocaleString();
+    }
+
+    function toggleLetterMode() {
+        isLetterMode = !isLetterMode;
+        const wrap = document.getElementById('inputWrapper');
+        const btn = document.getElementById('letterBtn');
+        const inputEl = document.getElementById('userInput');
+        
+        if (isLetterMode) {
+            wrap.classList.add('letter-mode');
+            btn.classList.add('active');
+            inputEl.placeholder = "写下此刻的想法，把它封存...";
+            inputEl.style.height = '120px';
+            typeWriter("我在听。写下来吧，把它交给大海。📝");
+        } else {
+            wrap.classList.remove('letter-mode');
+            btn.classList.remove('active');
+            inputEl.placeholder = "告诉我，你想买什么...";
+            inputEl.style.height = '54px';
+            typeWriter(getRandom(scripts.greetings));
+        }
+    }
+
     function triggerSend() {
-        const val = input.value.trim();
-        if (val !== '') {
-            handleInput(val);
-            input.value = ''; // 清空输入框
+        const text = input.value.trim();
+        if (!text) return;
+        createParticles();
+        
+        if (isLetterMode) {
+            saveLetter(text);
+            input.value = '';
+            isLetterMode = false;
+            document.getElementById('inputWrapper').classList.remove('letter-mode');
+            document.getElementById('letterBtn').classList.remove('active');
+            input.placeholder = "告诉我，你想买什么...";
+            input.style.height = '54px';
+            typeWriter("信件已收到。它现在很安全。📭");
+        } else {
+            handleInput(text);
+            input.value = '';
+            input.style.height = '54px';
+        }
+    }
+
+    function saveLetter(content) {
+        const letter = { id: Date.now(), date: new Date().toLocaleString(), content: content };
+        lettersLog.unshift(letter);
+        localStorage.setItem('lh_letters_log', JSON.stringify(lettersLog));
+        brightenLight(3); 
+        setTimeout(() => brightenLight(0), 1000);
+    }
+
+    function openLettersModal() {
+        const list = document.getElementById('lettersList');
+        list.innerHTML = '';
+        
+        if (lettersLog.length === 0) {
+            list.innerHTML = '<div style="text-align:center;color:#666;">这里是空的</div>';
+            document.getElementById('modalLetters').style.display = 'flex';
+            return;
+        }
+        
+        lettersLog.forEach(l => {
+            const div = document.createElement('div');
+            div.className = 'list-item';
+            
+            const itemTop = document.createElement('div');
+            itemTop.className = 'item-top';
+            itemTop.innerHTML = `<span>${l.date}</span>`;
+            
+            const itemMain = document.createElement('div');
+            itemMain.className = 'item-main letter-display';
+            itemMain.textContent = l.content;
+            
+            const btnCopy = document.createElement('div');
+            btnCopy.className = 'btn-copy';
+            btnCopy.textContent = '复制';
+            btnCopy.onclick = () => copyLetter(l.content);
+            
+            const btnDel = document.createElement('div');
+            btnDel.className = 'btn-del';
+            btnDel.textContent = '删除';
+            btnDel.onclick = () => deleteLetter(l.id);
+            
+            div.appendChild(itemTop);
+            div.appendChild(itemMain);
+            div.appendChild(btnCopy);
+            div.appendChild(btnDel);
+            list.appendChild(div);
+        });
+        
+        document.getElementById('modalLetters').style.display = 'flex';
+    }
+
+    function copyLetter(text) { 
+        navigator.clipboard.writeText(text).then(() => alert("已复制到剪贴板")); 
+    }
+
+    function deleteLetter(id) {
+        if (confirm("确定要删除这封信吗？")) {
+            lettersLog = lettersLog.filter(l => l.id !== id);
+            localStorage.setItem('lh_letters_log', JSON.stringify(lettersLog));
+            openLettersModal();
         }
     }
 
     function handleInput(text) {
-        createParticles(); // 发射粒子效果
         if (stage === 0) {
-            // 第一步：尝试提取价格数字
             const priceMatch = text.match(/(\d+(\.\d+)?)/);
-            if (priceMatch) {
-                currentPrice = parseFloat(priceMatch[0]);
-            }
-            stage++;
+            if (priceMatch) currentPrice = parseFloat(priceMatch[0]);
+            stage++; 
             advanceConversation();
-        } else if (stage < 5) {
-            stage++;
-            advanceConversation();
+        } else if (stage < 5) { 
+            stage++; 
+            advanceConversation(); 
         }
     }
 
-    // === 对话推进逻辑 ===
     function advanceConversation() {
-        brightenLight(stage); // 点亮灯塔
+        brightenLight(stage);
         let nextText = "";
         if (stage === 1) nextText = getRandom(scripts.distraction);
         else if (stage === 2) nextText = getRandom(scripts.movement);
         else if (stage === 3) nextText = getRandom(scripts.reflection);
         else if (stage === 4) nextText = getRandom(scripts.social);
-        else if (stage === 5) {
-            nextText = getRandom(scripts.permission);
-            showFinalChoices(); // 显示最终按钮
+        else if (stage === 5) { 
+            nextText = getRandom(scripts.permission); 
+            showFinalChoices(); 
         }
         typeWriter(nextText);
     }
 
-    // === 灯光变亮效果 ===
     function brightenLight(level) {
         const beam = document.getElementById('lightBeam');
         const lantern = document.getElementById('lantern');
         const body = document.body;
-
-        // 透明度逐渐增加
-        const opacity = 0.1 + (level * 0.15); 
-        // 光束范围逐渐变大
+        const opacity = 0.1 + (level * 0.15);
         const scale = 0.5 + (level * 0.15);
-        // 背景稍微变亮一点点（黎明的感觉）
         const bgLightness = 5 + (level * 2);
-
         beam.style.opacity = opacity;
         beam.style.transform = `scale(${scale})`;
-        
         lantern.style.opacity = 0.5 + (level * 0.1);
         lantern.style.boxShadow = `0 0 ${20 + level * 10}px #fff`;
-        
         body.style.backgroundColor = `hsl(0, 0%, ${bgLightness}%)`;
     }
 
-    // === 打字机效果 ===
     function typeWriter(text) {
         const box = document.getElementById('messageBox');
-        box.innerHTML = '<span class="cursor"></span>'; // 清空并保留光标
+        box.innerHTML = '<span class="cursor"></span>';
         let i = 0;
-        const inputContainer = document.getElementById('inputContainer');
+        const inputContainer = document.getElementById('bottomDock');
+        if(!isLetterMode) { 
+            inputContainer.style.opacity = '0'; 
+            inputContainer.style.pointerEvents = 'none'; 
+        }
         
-        // 打字时隐藏输入框
-        inputContainer.style.opacity = '0';
-        inputContainer.style.pointerEvents = 'none';
-
         function type() {
-            if (i < text.length) {
-                box.innerText = text.substring(0, i + 1);
-                i++;
-                // 随机打字速度，更拟人
-                const randomSpeed = 30 + Math.random() * 50;
-                setTimeout(type, randomSpeed); 
-            } else {
-                // 打字结束，加回光标
-                box.innerHTML = text + '<span class="cursor"></span>';
-                // 如果还没到最后一步，重新显示输入框
-                if (stage < 5) {
-                    setTimeout(() => {
-                        inputContainer.style.opacity = '1';
-                        inputContainer.style.pointerEvents = 'auto';
-                        document.getElementById('userInput').focus();
-                    }, 500);
-                }
+            if (i < text.length) { 
+                box.innerText = text.substring(0, i + 1); 
+                i++; 
+                setTimeout(type, 30 + Math.random() * 50); 
+            } else { 
+                box.innerHTML = text + '<span class="cursor"></span>'; 
+                if (stage < 5 || isLetterMode) { 
+                    setTimeout(() => { 
+                        inputContainer.style.opacity = '1'; 
+                        inputContainer.style.pointerEvents = 'auto'; 
+                        if(!isLetterMode) document.getElementById('userInput').focus(); 
+                    }, 500); 
+                } 
             }
         }
-        // 延迟一点点开始打字
         setTimeout(type, 600);
     }
 
-    // === 显示最终选择按钮 ===
     function showFinalChoices() {
-        document.getElementById('inputContainer').style.display = 'none';
+        document.getElementById('bottomDock').style.opacity = '0';
+        document.getElementById('bottomDock').style.pointerEvents = 'none';
         const btns = document.getElementById('choiceBtns');
         btns.style.display = 'flex';
-        
-        // 如果提取到了价格，更新按钮文本
-        if (currentPrice > 0) {
-            document.querySelector('.btn-save').innerText = `⚓ 存下这 ¥${currentPrice}`;
-        }
+        if (currentPrice > 0) document.querySelector('.btn-save').innerText = `⚓ 存下这 ¥${currentPrice}`;
     }
 
-    // === 处理“买了” ===
     function handleBuy() {
-        typeWriter("去吧，模仿者。愿它能让你快乐很久。🌊");
+        typeWriter("去吧，冒险家。愿它能让你快乐很久。🌊");
         document.getElementById('choiceBtns').style.display = 'none';
-        // 5秒后刷新页面重置
-        setTimeout(() => location.reload(), 5000);
+        document.getElementById('bottomDock').style.opacity = '1';
+        document.getElementById('bottomDock').style.pointerEvents = 'auto';
+        setTimeout(() => {
+            stage = 0;
+            currentPrice = 0;
+            brightenLight(0);
+            typeWriter(getRandom(scripts.greetings));
+        }, 4000);
     }
 
-    // === 处理“存下” ===
     function handleSave() {
-        // 如果一开始没提取到价格，现在补问一下
         if (currentPrice === 0) {
-            let manualPrice = prompt("太棒了！这次省下了多少钱？（输入数字即可）");
-            if (manualPrice) {
-                currentPrice = parseFloat(manualPrice);
-            }
+            let manual = prompt("太棒了！这次省下了多少钱？");
+            currentPrice = parseFloat(manual) || 0;
         }
-
+        
         if (currentPrice > 0) {
-            // 更新总积蓄并保存到本地
-            totalSavings += currentPrice;
-            localStorage.setItem('lighthouse_savings', totalSavings);
-            // 更新右上角显示
-            document.getElementById('savingsDisplay').innerText = totalSavings.toLocaleString();
+            let note = prompt("给这笔宝藏加个备注？(可选)", "克制奖励");
+            const log = {
+                id: Date.now(),
+                date: new Date().toLocaleDateString(),
+                amount: currentPrice,
+                note: note || "克制奖励"
+            };
+            savingsLog.unshift(log);
+            updateSavings();
             typeWriter(`宝藏已入库！你的专属积蓄增加了 ¥${currentPrice}。⚓`);
         } else {
             typeWriter("太棒了！又一次战胜了风浪。⚓");
         }
         
         document.getElementById('choiceBtns').style.display = 'none';
-        // 4秒后刷新页面重置
-        setTimeout(() => location.reload(), 4000);
+        document.getElementById('bottomDock').style.opacity = '1';
+        document.getElementById('bottomDock').style.pointerEvents = 'auto';
+        setTimeout(() => {
+            stage = 0;
+            currentPrice = 0;
+            brightenLight(0);
+            typeWriter(getRandom(scripts.greetings));
+        }, 4000);
     }
 
-    // === 辅助工具：随机获取数组元素 ===
+    function updateSavings() {
+        localStorage.setItem('lh_savings_log', JSON.stringify(savingsLog));
+        totalSavings = savingsLog.reduce((sum, item) => sum + item.amount, 0);
+        localStorage.setItem('lighthouse_savings', totalSavings);
+        updateUI();
+    }
+
+    function openSavingsModal() {
+        const list = document.getElementById('savingsList');
+        list.innerHTML = '';
+        
+        if (savingsLog.length === 0) {
+            list.innerHTML = '<div style="text-align:center;color:#666;">还没有宝藏记录</div>';
+        } else {
+            savingsLog.forEach((l, index) => {
+                const div = document.createElement('div');
+                div.className = 'list-item';
+                div.innerHTML = `<div class="item-top"><span>${l.date}</span> <span class="item-val">+${l.amount}</span></div><div class="item-main">${l.note}</div><div class="btn-del" onclick="deleteSavings(${index})">删除</div>`;
+                list.appendChild(div);
+            });
+        }
+        document.getElementById('modalSavings').style.display = 'flex';
+    }
+
+    function deleteSavings(index) {
+        if(confirm("确定删除这笔记录？")) {
+            savingsLog.splice(index, 1);
+            updateSavings();
+            openSavingsModal();
+        }
+    }
+
+    function openTideModal() {
+        document.getElementById('tideInput').value = currentTide;
+        document.getElementById('modalTide').style.display = 'flex';
+    }
+
+    function saveTide() {
+        const val = parseFloat(document.getElementById('tideInput').value);
+        if (!isNaN(val)) {
+            currentTide = val;
+            localStorage.setItem('lh_tide', currentTide);
+            updateUI();
+            closeModal('modalTide');
+        }
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).style.display = 'none';
+    }
+
     function getRandom(arr) {
         return arr[Math.floor(Math.random() * arr.length)];
     }
 
-    // === 视觉特效：发送时的粒子动画 ===
     function createParticles() {
-        const input = document.getElementById('inputContainer');
+        const input = document.getElementById('inputWrapper');
         const rect = input.getBoundingClientRect();
         const particles = document.getElementById('particles');
-
         for (let i = 0; i < 20; i++) {
             const p = document.createElement('div');
             p.className = 'particle';
-            // 随机起始位置（在输入框附近）
             p.style.left = (rect.left + Math.random() * rect.width) + 'px';
             p.style.top = (rect.top + Math.random() * rect.height) + 'px';
-            // 随机大小
             p.style.width = Math.random() * 4 + 'px';
             p.style.height = p.style.width;
-            
-            // 计算飞向灯塔的目标位置（大致在屏幕中心偏上）
             const destX = window.innerWidth / 2 - parseFloat(p.style.left);
             const destY = 200 - parseFloat(p.style.top);
-
-            // 执行动画
             p.animate([
                 { transform: 'translate(0,0)', opacity: 1 },
                 { transform: `translate(${destX}px, ${destY}px)`, opacity: 0 }
@@ -360,17 +571,12 @@
                 duration: 800 + Math.random() * 500,
                 easing: 'ease-out'
             });
-            
             particles.appendChild(p);
-            // 动画结束后清理元素
             setTimeout(() => p.remove(), 1500);
         }
     }
-    
-    // ✅ 注册离线引擎 (APK 必须)
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js');
-    }
+
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
 </script>
 </body>
 </html>
